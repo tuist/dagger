@@ -1,8 +1,12 @@
 import Foundation
 
-enum DaggerError: Error, CustomStringConvertible {
+/// Errors that can be thrown while conneting to the engine.
+enum DaggerError: Error, Equatable, CustomStringConvertible {
+    /// This error is thrown is the DAGGER_SESSION_PORT environment variable is absent.
     case missingPort(envVariable: String)
+    /// This error is thrown if the DAGGER_SESSION_PORT environment variable is not a number.
     case invalidPortNumber(portString: String)
+    /// This error is thrown if the DAGGER_SESSION_TOKEN environment variable is absent.
     case missingSessionToken(envVariable: String)
 
     var description: String {
@@ -14,45 +18,27 @@ enum DaggerError: Error, CustomStringConvertible {
     }
 }
 
+/// Dagger is the entry point to build
 public final class Dagger: Sendable {
-    private let config: Config
-    private let urlSession: URLSession
-    private let apiURL: URL
-    
-    private init(config: Config, apiURL: URL, urlSession: URLSession) {
-        self.config = config
-        self.apiURL = apiURL
-        self.urlSession = urlSession
+    /// Connects to the Dagger engine and returns a client instance to build a query from.
+    /// - Parameter config: A configuration instance to configure the connection.
+    /// - Returns: A client instance.
+    public static func connect(config: DaggerConfig = DaggerConfig()) throws -> DaggerClient {
+        return try self.connect(config: config, environment: ProcessInfo.processInfo.environment)
     }
     
-    func query(_ query: String) async throws -> Any {
-        var urlComponents = URLComponents(url: self.apiURL, resolvingAgainstBaseURL: false)!
-        urlComponents.queryItems = [URLQueryItem(name: "query", value: query)]
-        var request = URLRequest(url: urlComponents.url!)
-        request.httpMethod = "POST"
-        request.httpBody = try JSONSerialization.data(withJSONObject: ["query": query])
-        request.allHTTPHeaderFields = [:]
-        request.allHTTPHeaderFields?["Content-Type"] = "application/json"
-        let (data, _) = try await urlSession.data(for: request)
-        return try JSONSerialization.jsonObject(with: data)
-    }
-    
-    public static func connect(config: Config) throws -> Dagger {
-        guard let portString = ProcessInfo.processInfo.environment["DAGGER_SESSION_PORT"] else {
+    static func connect(config: DaggerConfig = DaggerConfig(),
+                        environment: [String: String]) throws -> DaggerClient {
+        guard let portString = environment["DAGGER_SESSION_PORT"] else {
             throw DaggerError.missingPort(envVariable: "DAGGER_SESSION_PORT")
         }
         guard let port = Int(portString) else {
             throw DaggerError.invalidPortNumber(portString: portString)
         }
-        guard let sessionToken = ProcessInfo.processInfo.environment["DAGGER_SESSION_TOKEN"] else {
+        guard let sessionToken = environment["DAGGER_SESSION_TOKEN"] else {
             throw DaggerError.missingSessionToken(envVariable: "DAGGER_SESSION_TOKEN")
         }
         let apiURL = URL(string: "http://\(sessionToken):@127.0.0.1:\(port)/query")!
-        return Dagger(config: config, apiURL: apiURL, urlSession: .shared)
+        return DaggerClient(config: config, apiURL: apiURL, urlSession: .shared)
     }
-    
-    public func container() -> Container {
-        return Container(parent: .client(self))
-    }
-    
 }

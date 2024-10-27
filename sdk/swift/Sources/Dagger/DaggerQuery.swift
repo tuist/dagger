@@ -2,9 +2,9 @@ import Foundation
 
 enum DaggerQueryComponentParent: Sendable {
     case component(DaggerQueryComponent)
-    case client(Dagger)
+    case client(DaggerClient)
     
-    var client: Dagger? {
+    var client: DaggerClient? {
         switch self {
         case .component(_): return nil
         case .client(let client): return client
@@ -44,7 +44,7 @@ struct DaggerQueryFieldComponent: DaggerQueryComponent {
 extension DaggerQueryComponent {
 
     func completeAndRun<T>(withField field: String) async throws -> T {
-        var client: Dagger!
+        var client: DaggerClient!
         var components: [DaggerQueryComponent] = [DaggerQueryFieldComponent(field: field, parent: .component(self))]
         components.insert(self, at: 0)
         while case let DaggerQueryComponentParent.component(parent) = components.first!.parent {

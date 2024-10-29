@@ -8,10 +8,12 @@ let package = Package(
     platforms: [.macOS("13.0")],
     products: [
         .library(name: "Dagger", targets: ["Dagger"]),
+        .executable(name: "codegen", targets: ["CodeGen"])
         .executable(name: "pipeline", targets: ["Pipeline"])
     ],
     targets: [
         .executableTarget(name: "Pipeline", dependencies: ["Dagger"]),
+        .executableTarget(name: "CodeGen", dependencies: []),
         .target(
             name: "Dagger",
             dependencies: [

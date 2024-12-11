@@ -30,8 +30,6 @@ type SDK struct {
 	PHP *PHPSDK
 	// Develop the Dagger Java SDK (experimental)
 	Java *JavaSDK
-	// // Develop the Dagger Swift SDK (experimental)
-	// Swift *SwiftSDK
 }
 
 func (sdk *SDK) All() *AllSDK {
